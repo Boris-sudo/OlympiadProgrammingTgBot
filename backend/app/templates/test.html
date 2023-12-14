@@ -6,7 +6,14 @@
 </head>
 <body>
 {% if response %}
-    <p>{{response}}</p>
+    <table>
+    {% for i in response %}
+        <tr>
+            <td>{{ i.name }}</td>
+            <td>{{ i.rating }}</td>
+        </tr>
+    {% endfor %}
+    </table>
 {% else %}
     <form action="" method="POST">
         {% csrf_token %}

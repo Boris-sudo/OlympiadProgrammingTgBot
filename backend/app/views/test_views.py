@@ -10,7 +10,10 @@ def show_list(request):
     result_response = []
     problems = response['result']['problems']
     for i in problems:
-        print(i)
-        if i['rating'] == 1400:
-            result_response.append(i)
-    return render(request, "test.html", {'response': problems})
+        try:
+            print(i['rating'])
+            if i['rating'] == 1400:
+                result_response.append(i)
+        except:
+            pass
+    return render(request, "test.html", {'response': result_response})
