@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Testing page</title>
+</head>
+<body>
+{% if response %}
+    <p>{{response}}</p>
+{% else %}
+    <form action="" method="POST">
+        {% csrf_token %}
+        <input type="submit">
+    </form>
+{% endif %}
+</body>
+</html>

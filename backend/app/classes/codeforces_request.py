@@ -7,8 +7,8 @@ class CodeforcesRequest:
     def api(self, endpoint):
         resp = requests.request("GET", self.api_url.format(endpoint))
         resp.raise_for_status()
-        return resp
+        return resp.json()
 
     def get_problemset(self):
         problemset = self.api('problemset.problems')
-        print(problemset)
+        return problemset
