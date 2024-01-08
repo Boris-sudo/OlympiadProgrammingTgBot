@@ -24,6 +24,7 @@ def problemset(request):
                 pass
         return JsonResponse({'result': result_response}, status=200)
 
+
 def daily_task(request):
     if request.method == 'GET':
         rating = None
@@ -40,4 +41,4 @@ def daily_task(request):
                     available_problems.append(problem)
             except:
                 pass
-        return JsonResponse({'result': available_problems[random.randint(0,len(available_problems))]}, status=200)
+        return JsonResponse({'result': available_problems[random.randint(0, len(available_problems))]}, status=200)
