@@ -8,6 +8,16 @@ from ..classes import CodeforcesRequest
 from ..models import DailyTask
 
 
+def find_task_in_problemset(problemset, task):
+    for problem in problemset:
+        for i in task:
+            same = True
+            if problem[i] != task[i]:
+                same = False
+            if same:
+                return problem
+
+
 def problemset(request):
     if request.method == 'GET':
         # rating = request.data['rating']
@@ -36,11 +46,13 @@ def daily_task(request):
         response = codeforces_request.get_problemset()
 
         now_date = date.today()
+        print(now_date)
         result_task = None
         ''' GETTING DAILY TASK '''
-        try:
-            result_task = DailyTask.objects.get(date=now_date, rating=rating)
-        except:
+        result_task = DailyTask.objects.filter(date=now_date, rating=rating).first()
+        print(result_task)
+        if result_task is None:
+            print("result task doesn't exist yet")
             # getting all available new daily tasks
             available_problems = []
             for problem in response['result']['problems']:
@@ -49,7 +61,6 @@ def daily_task(request):
                         available_problems.append(problem)
                 except:
                     pass
-
             # checker that this task wasn't already a daily task
             while True:
                 result_task = available_problems[random.randint(0, len(available_problems))]
@@ -58,7 +69,6 @@ def daily_task(request):
                                   index=result_task['index'])
                 except:
                     break
-
             # creating db-element with this daily task
             DailyTask.objects.create(
                 date=now_date,
@@ -66,4 +76,10 @@ def daily_task(request):
                 contestId=result_task['contestId'],
                 index=result_task['index']
             )
+        else:
+            task_rating = result_task.rating
+            task_contestId = result_task.contestId
+            task_index = result_task.index
+            result_task = find_task_in_problemset(response['result']['problems'], {'rating': task_rating, 'contestId': task_contestId, 'index': task_index})
+            print(result_task)
         return JsonResponse({'result': result_task}, status=200)
