@@ -6,8 +6,6 @@ from django.conf.urls.static import static
 from .views.codeforces_views import problemset, daily_task
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-
     path('codeforces/problemset/', problemset),
     path('codeforces/daily-task/', daily_task),
 
