@@ -40,6 +40,11 @@ async def start_handler2(callback: CallbackQuery):
 ''' =================== CALLBACK QUERY ====================================================== '''
 
 
+@router.callback_query(F.data == "start")  # start function
+async def log_in_function(callback: CallbackQuery, state: FSMContext):
+    await send_main_menu(callback, callback.from_user.id)
+
+
 @router.callback_query(F.data == "logIn")  # login function
 async def log_in_function(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
@@ -53,15 +58,19 @@ async def show_daily_problem(callback: CallbackQuery, state: FSMContext):
     # TODO написать функцию, в которой будет отсылаться `dailyProblem`
     user_id = callback.message.from_user.id
     profile = api.get_account(user_id)
-    problem = api.get_daily_problem(user_id, profile.rating)
+    problem = api.get_daily_problem(user_id, profile['rating'])['result']
 
     markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f'Меню', callback_data=f'start')],
-        [InlineKeyboardButton(text=f'{problem.name}', url=f'{problem.link}')]
+        [InlineKeyboardButton(text=f'Menu', callback_data=f'start')],
+        [InlineKeyboardButton(
+            text=f'{problem["name"]}',
+            url=f'https://codeforces.com/problemset/problem/{problem["contestId"]}/{problem["index"]}'
+        )]
     ])
     await callback.message.edit_text(
-        text='',
-        markup=markup,
+        text=f'Here is your daily problem\nrating: <code>{problem["rating"]}</code>',
+        reply_markup=markup,
+        parse_mode='html',
     )
 
 
@@ -145,7 +154,7 @@ async def send_main_menu(message, user_id):
             [InlineKeyboardButton(text='Олимпиады', callback_data='olympiads')],
         ])
         if type(message) == CallbackQuery:
-            await message.message.answer(
+            await message.message.edit_text(
                 text=f"Привет, {message.from_user.first_name}. Что хочешь посмотреть сегодня?",
                 reply_markup=markup,
                 parse_mode="html"
@@ -170,7 +179,7 @@ async def send_main_menu(message, user_id):
 
 async def show_five_tasks(callback: CallbackQuery, last_index: int, rating: int):
     problemset = api.get_problemset(callback.from_user.id, rating)['result']
-    current_problems = problemset[last_index: last_index]
+    current_problems = problemset[last_index: last_index + 5]
 
     ''' CREATING MARKUP '''
     markup = InlineKeyboardMarkup(inline_keyboard=[
@@ -188,19 +197,23 @@ async def show_five_tasks(callback: CallbackQuery, last_index: int, rating: int)
         )])
     # adding navigation in problems buttons
     markup.inline_keyboard.append([])
-    if last_index > 5:
+    if last_index >= 5:
         markup.inline_keyboard[-1].append(
-            InlineKeyboardButton(text='⬅', callback_data=MoveInProblemset(last_index=last_index - 5, rating=rating).pack()))
+            InlineKeyboardButton(text='⬅',
+                                 callback_data=MoveInProblemset(last_index=last_index - 5, rating=rating).pack()))
     else:
         markup.inline_keyboard[-1].append(
             InlineKeyboardButton(text=' ', callback_data='dummy function'))
     markup.inline_keyboard[-1].append(InlineKeyboardButton(text='move in problemset', callback_data='dummy function'))
     if last_index < len(problemset) - 5:
         markup.inline_keyboard[-1].append(
-            InlineKeyboardButton(text='➡', callback_data=MoveInProblemset(last_index=last_index + 5, rating=rating).pack()))
+            InlineKeyboardButton(text='➡',
+                                 callback_data=MoveInProblemset(last_index=last_index + 5, rating=rating).pack()))
     else:
         markup.inline_keyboard[-1].append(
             InlineKeyboardButton(text=' ', callback_data='dummy function'))
+    # adding start button
+    markup.inline_keyboard.append([InlineKeyboardButton(text='main menu', callback_data='start')])
 
     ''' FINALLY EDITING TEXT OF THE CALLBACK '''
     await callback.message.edit_text(

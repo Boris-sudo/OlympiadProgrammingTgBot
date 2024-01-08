@@ -23,11 +23,10 @@ def get_account(user_id):
 
 
 def get_daily_problem(user_id, rating):
-    return api("GET", f"codeforces/{user_id}/get_task", {'rating': rating}).json()
+    return api("GET", f"codeforces/daily-task", {'rating': rating}).json()
+    # return api("GET", f"codeforces/{user_id}/daily-task", {'rating': rating}).json()
 
 
 def get_problemset(user_id, rating):
-    data = {'rating': rating}
-    print(data)
     return api("GET", f"codeforces/problemset", {'rating': rating}).json()
     # return api("GET", f"/codeforces/{user_id}/problemset", data={'rating': rating}).json()
