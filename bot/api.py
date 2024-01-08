@@ -1,6 +1,6 @@
 import requests
 
-api_url = 'https://localhost:8000/api/{}/'
+api_url = 'http://localhost:8000/api/{}/'
 
 
 def api(method, endpoint, data=None):
@@ -18,13 +18,16 @@ def validate_code(tg_id, tg_code, tg_password=None):
 
 
 def get_account(user_id):
-    return api("GET", f"{user_id}/account").json()
-
-
-def get_account(user_id):
-    return api("GET", f"{user_id}/get_task").json()
+    return {'rating': 1400}
+    # return api("GET", f"{user_id}/account").json()
 
 
 def get_daily_problem(user_id, rating):
-    # TODO
-    pass
+    return api("GET", f"codeforces/{user_id}/get_task", {'rating': rating}).json()
+
+
+def get_problemset(user_id, rating):
+    data = {'rating': rating}
+    print(data)
+    return api("GET", f"codeforces/problemset", {'rating': rating}).json()
+    # return api("GET", f"/codeforces/{user_id}/problemset", data={'rating': rating}).json()
