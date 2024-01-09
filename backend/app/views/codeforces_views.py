@@ -46,11 +46,9 @@ def daily_task(request):
         response = codeforces_request.get_problemset()
 
         now_date = date.today()
-        print(now_date)
         result_task = None
         ''' GETTING DAILY TASK '''
         result_task = DailyTask.objects.filter(date=now_date, rating=rating).first()
-        print(result_task)
         if result_task is None:
             print("result task doesn't exist yet")
             # getting all available new daily tasks
@@ -64,10 +62,9 @@ def daily_task(request):
             # checker that this task wasn't already a daily task
             while True:
                 result_task = available_problems[random.randint(0, len(available_problems))]
-                try:
-                    DailyTask.get(rating=result_task['rating'], contestId=result_task['contestId'],
-                                  index=result_task['index'])
-                except:
+                same_task_in_db = DailyTask.objects.filter(rating=result_task['rating'], contestId=result_task['contestId'],
+                                                       index=result_task['index']).first()
+                if same_task_in_db is None:
                     break
             # creating db-element with this daily task
             DailyTask.objects.create(
@@ -80,6 +77,7 @@ def daily_task(request):
             task_rating = result_task.rating
             task_contestId = result_task.contestId
             task_index = result_task.index
-            result_task = find_task_in_problemset(response['result']['problems'], {'rating': task_rating, 'contestId': task_contestId, 'index': task_index})
-            print(result_task)
+            result_task = find_task_in_problemset(response['result']['problems'],
+                                                  {'rating': task_rating, 'contestId': task_contestId,
+                                                   'index': task_index})
         return JsonResponse({'result': result_task}, status=200)
