@@ -34,3 +34,7 @@ def get_daily_problem(user_id, rating):
 def get_problemset(user_id, rating):
     return api("GET", f"codeforces/problemset", {'rating': rating}).json()
     # return api("GET", f"/codeforces/{user_id}/problemset", data={'rating': rating}).json()
+
+
+def get_olympiads():
+    return api("GET", f'')
