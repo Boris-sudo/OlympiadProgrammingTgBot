@@ -1,3 +1,5 @@
+import time
+
 from aiogram.fsm.state import StatesGroup, State
 from aiogram import Router, F
 from aiogram.types import Message, FSInputFile, InputFile, BufferedInputFile
@@ -5,14 +7,17 @@ from aiogram.filters import Command
 from aiogram.filters.callback_data import CallbackData, CallbackQuery
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
+from PIL import Image
 
 import math
 import api
 
+import bot.structure.classes as classes
+import bot.structure.tools as tools
+
 router = Router()
 
 ''' =================== SOME EXTRA CLASSES ================================================== '''
-import bot.structure.classes as classes
 
 
 class ChangeRating(CallbackData, prefix="ChangeRating"):
@@ -40,6 +45,11 @@ async def start_handler2(callback: CallbackQuery):
 ''' =================== CALLBACK QUERY ====================================================== '''
 
 
+@router.callback_query(F.data == "start")  # start function
+async def log_in_function(callback: CallbackQuery, state: FSMContext):
+    await send_main_menu(callback, callback.from_user.id)
+
+
 @router.callback_query(F.data == "logIn")  # login function
 async def log_in_function(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
@@ -53,15 +63,19 @@ async def show_daily_problem(callback: CallbackQuery, state: FSMContext):
     # TODO написать функцию, в которой будет отсылаться `dailyProblem`
     user_id = callback.message.from_user.id
     profile = api.get_account(user_id)
-    problem = api.get_daily_problem(user_id, profile.rating)
+    problem = api.get_daily_problem(user_id, profile['rating'])['result']
 
     markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f'Меню', callback_data=f'start')],
-        [InlineKeyboardButton(text=f'{problem.name}', url=f'{problem.link}')]
+        [InlineKeyboardButton(text=f'Menu', callback_data=f'start')],
+        [InlineKeyboardButton(
+            text=f'{problem["name"]}',
+            url=f'https://codeforces.com/problemset/problem/{problem["contestId"]}/{problem["index"]}'
+        )]
     ])
     await callback.message.edit_text(
-        text='',
-        markup=markup,
+        text=f'Here is your daily problem\nrating: <code>{problem["rating"]}</code>',
+        reply_markup=markup,
+        parse_mode='html',
     )
 
 
@@ -83,6 +97,21 @@ async def show_topics(callback: CallbackQuery, state: FSMContext):
 async def show_olympiads(callback: CallbackQuery, state: FSMContext):
     # TODO сделать функцию, которая будет отправлять информацию о олимпиадах, в которых можно поучаствовать программистам
     pass
+
+
+@router.callback_query(F.data == "profile")  # function sending profile
+async def show_profile(callback: CallbackQuery, state: FSMContext):
+    # TODO сделать функцию, которая будет показывать твой профиль
+    account = api.get_account(callback.from_user.id)
+    filename = tools.generate_filename()
+    filepath = f'static/generated/{filename}.png'
+    tools.generate_rating_diagram(account['rating_changes'], filepath)
+    img = FSInputFile(filepath)
+    await callback.message.answer_photo(
+        photo=img,
+        caption=f"Your profile rating is: <code>{account['rating']}</code>",
+        parse_mode='html'
+    )
 
 
 @router.callback_query(ChangeRating.filter(0 <= F.rating <= 3500))  # up the user rating
@@ -143,9 +172,10 @@ async def send_main_menu(message, user_id):
             [InlineKeyboardButton(text='Ещё задач', callback_data='archive')],
             [InlineKeyboardButton(text='Темы', callback_data='topics')],
             [InlineKeyboardButton(text='Олимпиады', callback_data='olympiads')],
+            [InlineKeyboardButton(text='Профиль', callback_data='profile')],
         ])
         if type(message) == CallbackQuery:
-            await message.message.answer(
+            await message.message.edit_text(
                 text=f"Привет, {message.from_user.first_name}. Что хочешь посмотреть сегодня?",
                 reply_markup=markup,
                 parse_mode="html"
@@ -170,7 +200,7 @@ async def send_main_menu(message, user_id):
 
 async def show_five_tasks(callback: CallbackQuery, last_index: int, rating: int):
     problemset = api.get_problemset(callback.from_user.id, rating)['result']
-    current_problems = problemset[last_index: last_index]
+    current_problems = problemset[last_index: last_index + 5]
 
     ''' CREATING MARKUP '''
     markup = InlineKeyboardMarkup(inline_keyboard=[
@@ -188,19 +218,23 @@ async def show_five_tasks(callback: CallbackQuery, last_index: int, rating: int)
         )])
     # adding navigation in problems buttons
     markup.inline_keyboard.append([])
-    if last_index > 5:
+    if last_index >= 5:
         markup.inline_keyboard[-1].append(
-            InlineKeyboardButton(text='⬅', callback_data=MoveInProblemset(last_index=last_index - 5, rating=rating).pack()))
+            InlineKeyboardButton(text='⬅',
+                                 callback_data=MoveInProblemset(last_index=last_index - 5, rating=rating).pack()))
     else:
         markup.inline_keyboard[-1].append(
             InlineKeyboardButton(text=' ', callback_data='dummy function'))
     markup.inline_keyboard[-1].append(InlineKeyboardButton(text='move in problemset', callback_data='dummy function'))
     if last_index < len(problemset) - 5:
         markup.inline_keyboard[-1].append(
-            InlineKeyboardButton(text='➡', callback_data=MoveInProblemset(last_index=last_index + 5, rating=rating).pack()))
+            InlineKeyboardButton(text='➡',
+                                 callback_data=MoveInProblemset(last_index=last_index + 5, rating=rating).pack()))
     else:
         markup.inline_keyboard[-1].append(
             InlineKeyboardButton(text=' ', callback_data='dummy function'))
+    # adding start button
+    markup.inline_keyboard.append([InlineKeyboardButton(text='main menu', callback_data='start')])
 
     ''' FINALLY EDITING TEXT OF THE CALLBACK '''
     await callback.message.edit_text(

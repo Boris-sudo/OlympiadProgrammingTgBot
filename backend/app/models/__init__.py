@@ -1,1 +1,1 @@
-from profile import *
+from .daily_task import DailyTask
