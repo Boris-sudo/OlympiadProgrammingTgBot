@@ -18,7 +18,11 @@ def validate_code(tg_id, tg_code, tg_password=None):
 
 
 def get_account(user_id):
-    return {'rating': 1400}
+    return {
+        'rating': 1400,
+        'rating_changes': [(583, "2021-07-30"), (1213, "2022-10-03"), (1128, "2022-03-20"), (1073, "2022-05-02"),
+                           (1177, "2022-05-23"), (1297, "2022-06-14"), (1367, "2022-06-25"), (1400, "2022-08-07")],
+    }
     # return api("GET", f"{user_id}/account").json()
 
 

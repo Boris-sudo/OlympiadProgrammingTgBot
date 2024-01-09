@@ -1,3 +1,5 @@
+import time
+
 from aiogram.fsm.state import StatesGroup, State
 from aiogram import Router, F
 from aiogram.types import Message, FSInputFile, InputFile, BufferedInputFile
@@ -5,14 +7,17 @@ from aiogram.filters import Command
 from aiogram.filters.callback_data import CallbackData, CallbackQuery
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
+from PIL import Image
 
 import math
 import api
 
+import bot.structure.classes as classes
+import bot.structure.tools as tools
+
 router = Router()
 
 ''' =================== SOME EXTRA CLASSES ================================================== '''
-import bot.structure.classes as classes
 
 
 class ChangeRating(CallbackData, prefix="ChangeRating"):
@@ -94,6 +99,21 @@ async def show_olympiads(callback: CallbackQuery, state: FSMContext):
     pass
 
 
+@router.callback_query(F.data == "profile")  # function sending profile
+async def show_profile(callback: CallbackQuery, state: FSMContext):
+    # TODO сделать функцию, которая будет показывать твой профиль
+    account = api.get_account(callback.from_user.id)
+    filename = tools.generate_filename()
+    filepath = f'static/generated/{filename}.png'
+    tools.generate_rating_diagram(account['rating_changes'], filepath)
+    img = FSInputFile(filepath)
+    await callback.message.answer_photo(
+        photo=img,
+        caption=f"Your profile rating is: <code>{account['rating']}</code>",
+        parse_mode='html'
+    )
+
+
 @router.callback_query(ChangeRating.filter(0 <= F.rating <= 3500))  # up the user rating
 async def callback_foo8(callback: CallbackQuery, callback_data: ChangeRating):
     await show_five_tasks(callback, 0, callback_data.rating)
@@ -152,6 +172,7 @@ async def send_main_menu(message, user_id):
             [InlineKeyboardButton(text='Ещё задач', callback_data='archive')],
             [InlineKeyboardButton(text='Темы', callback_data='topics')],
             [InlineKeyboardButton(text='Олимпиады', callback_data='olympiads')],
+            [InlineKeyboardButton(text='Профиль', callback_data='profile')],
         ])
         if type(message) == CallbackQuery:
             await message.message.edit_text(
