@@ -1,6 +1,3 @@
-import random
-from datetime import date
-
 from django.http import JsonResponse
 
 from ..models import Olympiad
