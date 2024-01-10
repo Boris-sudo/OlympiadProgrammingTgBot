@@ -2,13 +2,13 @@ from django.db import models
 
 
 class Topic(models.Model):
-    name = models.CharField(max_length=1000, unique=True, blank=False, null=False, verbose_name='topic name')
-    link = models.CharField(max_length=1000, unique=True, blank=False, null=False, verbose_name='topic link')
+    name = models.CharField(max_length=1000, blank=False, null=False, verbose_name='topic name')
+    link = models.CharField(max_length=1000, blank=False, null=False, verbose_name='topic link')
 
 
 class TopicArchive(models.Model):
-    name = models.CharField(max_length=1000, unique=True, blank=False, null=False, verbose_name='topic archive name')
-    children = models.ManyToManyField(Topic, verbose_name='topic archive children')
+    name = models.CharField(max_length=1000, blank=False, null=False, verbose_name='topic archive name')
+    children = models.ManyToManyField(Topic, blank=True, verbose_name='topic archive children')
 
 
 def generate_topics():
@@ -20,7 +20,8 @@ def generate_topics():
     DekD = Topic.objects.create(name='Декартово дерево', link='https://e-maxx.ru/algo/treap')
     RandSh = Topic.objects.create(name='Рандомизированная куча', link='https://e-maxx.ru/algo/randomized_heap')
 
-    TopicArchive.objects.create(name='Структуры данных', children=[DO, Sqrt, Fenvik, SNM, DekD, RandSh])
+    struct = TopicArchive.objects.create(name='Структуры данных')
+    struct.children.set([DO, Sqrt, Fenvik, SNM, DekD, RandSh])
     # strigns
     ZFun = Topic.objects.create(name='Z-функция', link='https://e-maxx.ru/algo/z_function')
     PrefFun = Topic.objects.create(name='Перфикс-функция', link='https://e-maxx.ru/algo/prefix_function')
@@ -32,6 +33,6 @@ def generate_topics():
     AhoKar = Topic.objects.create(name='Ахо-Корасик', link='https://e-maxx.ru/algo/aho_corasick')
     SufTree = Topic.objects.create(name='Суффиксное дерево', link='https://e-maxx.ru/algo/ukkonen')
 
-    TopicArchive.objects.create(name='Алгоритмы на строках',
-                                children=[ZFun, PrefFun, HashAlgs, RabinKarp, SufAuto, SufMass, Pal, AhoKar, SufTree])
+    strings = TopicArchive.objects.create(name='Алгоритмы на строках')
+    strings.children.set([ZFun, PrefFun, HashAlgs, RabinKarp, SufAuto, SufMass, Pal, AhoKar, SufTree])
     # graphs

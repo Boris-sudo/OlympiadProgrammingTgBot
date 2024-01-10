@@ -1,4 +1,5 @@
 import time
+import typing
 
 from aiogram.fsm.state import StatesGroup, State
 from aiogram import Router, F
@@ -33,17 +34,17 @@ class MoveInOlympiads(CallbackData, prefix="MoveInOlympiads"):
     last_index: int
 
 
-class MoveInTopicsArchive(CallbackData, prefix="MoveInTopics"):
+class MoveInTopicsArchive(CallbackData, prefix="MoveInTopicsArchive"):
     last_index: int
 
 
-class ShowFiveTopics(CallbackData, prefix="ShowFiveTopics"):
-    array: []
+class ShowTopics(CallbackData, prefix="ShowTopics"):
+    index: int
     last_index_in_archive: int
 
 
 class MoveInTopic(CallbackData, prefix="MoveInTopic"):
-    array: []
+    index: int
     last_index: int
     last_index_in_archive: int
 
@@ -112,7 +113,7 @@ async def show_archive_tasks(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "topics")  # function sending all the theory
 async def show_topics(callback: CallbackQuery, state: FSMContext):
-    show_five_topics_archives(callback, 0)
+    await show_five_topics_archives(callback, 0)
 
 
 @router.callback_query(F.data == "olympiads")  # function sending olympiads
@@ -148,29 +149,30 @@ async def callback_foo8(callback: CallbackQuery, callback_data: MoveInProblemset
     await show_five_tasks(callback, callback_data.last_index, callback_data.rating)
 
 
-@router.callback_query(MoveInOlympiads.filter(F.last_index >= 0))  # show other five tasks
+@router.callback_query(MoveInOlympiads.filter(F.last_index >= 0))  # show other five olympiads
 async def callback_foo8(callback: CallbackQuery, callback_data: MoveInOlympiads):
     await show_five_olympiads(callback, callback_data.last_index)
 
 
-@router.callback_query(MoveInTopicsArchive.filter(F.last_index >= 0))  # show other five tasks
+@router.callback_query(MoveInTopicsArchive.filter(F.last_index >= 0))  # show other five archives of topics
 async def callback_foo8(callback: CallbackQuery, callback_data: MoveInTopicsArchive):
     await show_five_topics_archives(callback, callback_data.last_index)
 
 
-@router.callback_query(MoveInTopic.filter(F.last_index >= 0))  # show other five tasks
+@router.callback_query(MoveInTopic.filter(F.last_index >= 0))  # show other five topics
 async def callback_foo8(callback: CallbackQuery, callback_data: MoveInTopic):
-    await show_five_topics(callback, callback_data.last_index, callback_data.last_index_in_archive, callback_data.array)
+    await show_five_topics(callback, callback_data.last_index, callback_data.last_index_in_archive, callback_data.index)
 
 
-@router.callback_query(ShowFiveTopics.filter(F.last_index >= 0))  # show other five tasks
-async def callback_foo8(callback: CallbackQuery, callback_data: ShowFiveTopics):
-    await show_five_topics(callback, 0, callback_data.last_index_in_archive, callback.array)
+@router.callback_query(ShowTopics.filter(F.last_index_in_archive >= 0))  # show other five
+async def callback_foo8(callback: CallbackQuery, callback_data: ShowTopics):
+    await show_five_topics(callback, 0, callback_data.last_index_in_archive, callback_data.index)
 
 
 @router.callback_query(MoveBackToTopicsArchive.filter(F.last_index >= 0))  # show other five tasks
 async def callback_foo8(callback: CallbackQuery, callback_data: MoveBackToTopicsArchive):
     await show_five_topics_archives(callback, callback_data.last_index)
+    await show_five_topics_archives(callback, callback_data.last_index_in_archive)
 
 
 ''' =================== MESSAGE ============================================================= '''
@@ -324,12 +326,14 @@ async def show_five_olympiads(callback: CallbackQuery, last_index: int):
 
 
 async def show_five_topics_archives(callback: CallbackQuery, last_index: int):
-    topics = api.get_topics()
+    topics = api.get_topics()['result']
     markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='menu', callback_data='start')]])
     # adding topics to markup
+    i = last_index
     for topic in topics[last_index: last_index + 5]:
-        markup.inline_keyboard.append([InlineKeyboardButton(text=f'{topic["name"]}', callback_data=ShowFiveTopics(
-            last_index_in_archive=last_index, array=topic['children']).pack())])
+        markup.inline_keyboard.append([InlineKeyboardButton(text=f'{topic["name"]}', callback_data=ShowTopics(
+            last_index_in_archive=last_index, index=i).pack())])
+        i += 1
     # adding nav button to markup
     markup.inline_keyboard.append([])
     if last_index > 5:
@@ -350,24 +354,30 @@ async def show_five_topics_archives(callback: CallbackQuery, last_index: int):
     )
 
 
-async def show_five_topics(callback: CallbackQuery, last_index: int, back_last_index: int, topics: []):
+async def show_five_topics(callback: CallbackQuery, last_index: int, back_last_index: int, topic_index: int):
+    topics_archive = api.get_topics()['result']
+    topics = topics_archive[topic_index]['children']
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text='back', callback_data=MoveBackToTopicsArchive(last_index=back_last_index).pack())]])
     # adding topics to markup
-    for topic in topics:
-        markup.inline_keyboard.append([InlineKeyboardButton(text=f'{topic["name"]}', url=topic['url'])])
+    for topic in topics[last_index:last_index + 5]:
+        markup.inline_keyboard.append([InlineKeyboardButton(text=f'{topic["name"]}', url=topic['link'])])
     # adding nav button to markup
     markup.inline_keyboard.append([])
     if last_index > 5:
         markup.inline_keyboard[-1].append(
-            InlineKeyboardButton(text='⬅', callback_data=MoveInTopic(last_index=last_index - 5).pack()))
+            InlineKeyboardButton(text='⬅', callback_data=MoveInTopic(last_index=last_index - 5,
+                                                                     last_index_in_archive=back_last_index,
+                                                                     index=topic_index).pack()))
     else:
         markup.inline_keyboard[-1].append(InlineKeyboardButton(text=' ', callback_data='dummy function'))
     markup.inline_keyboard[-1].append(
         InlineKeyboardButton(text='move in topics', callback_data='dummy function'))
     if last_index < len(topics) - 5:
         markup.inline_keyboard[-1].append(
-            InlineKeyboardButton(text='➡', callback_data=MoveInTopic(last_index=last_index + 5).pack()))
+            InlineKeyboardButton(text='➡', callback_data=MoveInTopic(last_index=last_index + 5,
+                                                                     last_index_in_archive=back_last_index,
+                                                                     index=topic_index).pack()))
     else:
         markup.inline_keyboard[-1].append(InlineKeyboardButton(text=' ', callback_data='dummy function'))
     # finally editing message
