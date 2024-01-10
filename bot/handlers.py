@@ -29,6 +29,10 @@ class MoveInProblemset(CallbackData, prefix="MoveInProblemset"):
     rating: int
 
 
+class MoveInOlympiads(CallbackData, prefix="MoveInOlympiads"):
+    last_index: int
+
+
 ''' =================== COMMANDS ============================================================ '''
 
 
@@ -96,21 +100,24 @@ async def show_topics(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == "olympiads")  # function sending olympiads
 async def show_olympiads(callback: CallbackQuery, state: FSMContext):
     # TODO сделать функцию, которая будет отправлять информацию о олимпиадах, в которых можно поучаствовать программистам
-    pass
+    await show_five_olympiads(callback, 0)
 
 
 @router.callback_query(F.data == "profile")  # function sending profile
 async def show_profile(callback: CallbackQuery, state: FSMContext):
     # TODO сделать функцию, которая будет показывать твой профиль
+    markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='menu', callback_data='start')]])
     account = api.get_account(callback.from_user.id)
     filename = tools.generate_filename()
     filepath = f'static/generated/{filename}.png'
     tools.generate_rating_diagram(account['rating_changes'], filepath)
     img = FSInputFile(filepath)
+    await callback.message.delete()
     await callback.message.answer_photo(
         photo=img,
         caption=f"Your profile rating is: <code>{account['rating']}</code>",
-        parse_mode='html'
+        reply_markup=markup,
+        parse_mode='html',
     )
 
 
@@ -122,6 +129,11 @@ async def callback_foo8(callback: CallbackQuery, callback_data: ChangeRating):
 @router.callback_query(MoveInProblemset.filter(F.last_index >= 0))  # show other five tasks
 async def callback_foo8(callback: CallbackQuery, callback_data: MoveInProblemset):
     await show_five_tasks(callback, callback_data.last_index, callback_data.rating)
+
+
+@router.callback_query(MoveInOlympiads.filter(F.last_index >= 0))  # show other five tasks
+async def callback_foo8(callback: CallbackQuery, callback_data: MoveInOlympiads):
+    await show_five_olympiads(callback, callback_data.last_index)
 
 
 ''' =================== MESSAGE ============================================================= '''
@@ -175,12 +187,14 @@ async def send_main_menu(message, user_id):
             [InlineKeyboardButton(text='Профиль', callback_data='profile')],
         ])
         if type(message) == CallbackQuery:
-            await message.message.edit_text(
+            await message.message.delete()
+            await message.message.answer(
                 text=f"Привет, {message.from_user.first_name}. Что хочешь посмотреть сегодня?",
                 reply_markup=markup,
                 parse_mode="html"
             )
         else:
+            await message.delete()
             await message.answer(
                 text=f"Привет, {message.from_user.first_name}. Что хочешь посмотреть сегодня?",
                 reply_markup=markup,
@@ -241,4 +255,32 @@ async def show_five_tasks(callback: CallbackQuery, last_index: int, rating: int)
         text=f'Your current rating is: <code>{rating}</code>',
         reply_markup=markup,
         parse_mode="html",
+    )
+
+
+async def show_five_olympiads(callback: CallbackQuery, last_index: int):
+    olympiads = api.get_olympiads()['result']
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='menu', callback_data='start')],
+    ])
+    # adding links to markup
+    for olympiad in olympiads[last_index: last_index + 5]:
+        markup.inline_keyboard.append([InlineKeyboardButton(text=f'{olympiad["name"]}', url=olympiad['link'])])
+    # adding arrows to markup
+    markup.inline_keyboard.append([])
+    if last_index > 5:
+        markup.inline_keyboard[-1].append(
+            InlineKeyboardButton(text='⬅', callback_data=MoveInOlympiads(last_index=last_index - 5).pack()))
+    else:
+        markup.inline_keyboard[-1].append(InlineKeyboardButton(text=' ', callback_data='dummy function'))
+    markup.inline_keyboard[-1].append(InlineKeyboardButton(text='move in olympiads', callback_data='dummy function'))
+    if last_index < len(olympiads) - 5:
+        markup.inline_keyboard[-1].append(
+            InlineKeyboardButton(text='➡', callback_data=MoveInOlympiads(last_index=last_index + 5).pack()))
+    else:
+        markup.inline_keyboard[-1].append(InlineKeyboardButton(text=' ', callback_data='dummy function'))
+    # finally editing message
+    await callback.message.edit_text(
+        text='Choose any olympiad you would like to participate in',
+        reply_markup=markup,
     )
