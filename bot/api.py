@@ -38,3 +38,7 @@ def get_problemset(user_id, rating):
 
 def get_olympiads():
     return api("GET", f'olympiads').json()
+
+
+def get_topics():
+    return api("GET", f'topics').json()
