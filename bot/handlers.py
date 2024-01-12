@@ -307,7 +307,7 @@ async def show_five_olympiads(callback: CallbackQuery, last_index: int):
         markup.inline_keyboard.append([InlineKeyboardButton(text=f'{olympiad["name"]}', url=olympiad['link'])])
     # adding arrows to markup
     markup.inline_keyboard.append([])
-    if last_index > 5:
+    if last_index >= 5:
         markup.inline_keyboard[-1].append(
             InlineKeyboardButton(text='⬅', callback_data=MoveInOlympiads(last_index=last_index - 5).pack()))
     else:
@@ -336,7 +336,7 @@ async def show_five_topics_archives(callback: CallbackQuery, last_index: int):
         i += 1
     # adding nav button to markup
     markup.inline_keyboard.append([])
-    if last_index > 5:
+    if last_index >= 5:
         markup.inline_keyboard[-1].append(
             InlineKeyboardButton(text='⬅', callback_data=MoveInTopicsArchive(last_index=last_index - 5).pack()))
     else:
@@ -364,7 +364,7 @@ async def show_five_topics(callback: CallbackQuery, last_index: int, back_last_i
         markup.inline_keyboard.append([InlineKeyboardButton(text=f'{topic["name"]}', url=topic['link'])])
     # adding nav button to markup
     markup.inline_keyboard.append([])
-    if last_index > 5:
+    if last_index >= 5:
         markup.inline_keyboard[-1].append(
             InlineKeyboardButton(text='⬅', callback_data=MoveInTopic(last_index=last_index - 5,
                                                                      last_index_in_archive=back_last_index,

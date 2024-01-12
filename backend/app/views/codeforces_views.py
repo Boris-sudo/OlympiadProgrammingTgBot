@@ -19,10 +19,7 @@ def find_task_in_problemset(problemset, task):
 
 def problemset(request):
     if request.method == 'GET':
-        # rating = request.data['rating']
-        rating = None
-        if rating is None:
-            rating = 1400
+        rating = int(request.GET.get('rating'))
         codeforces_request = CodeforcesRequest()
         response = codeforces_request.get_problemset()
         result_response = []
@@ -38,14 +35,11 @@ def problemset(request):
 
 def daily_task(request):
     if request.method == 'GET':
-        rating = None
-        if rating is None:
-            rating = 1400
+        rating = int(request.GET.get('rating'))
         codeforces_request = CodeforcesRequest()
         response = codeforces_request.get_problemset()
 
         now_date = date.today()
-        result_task = None
         ''' GETTING DAILY TASK '''
         result_task = DailyTask.objects.filter(date=now_date, rating=rating).first()
         if result_task is None:

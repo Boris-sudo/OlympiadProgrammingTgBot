@@ -3,8 +3,8 @@ import requests
 api_url = 'http://localhost:8000/api/{}/'
 
 
-def api(method, endpoint, data=None):
-    resp = requests.request(method, api_url.format(endpoint), data=data)
+def api(method, endpoint, **kwargs):
+    resp = requests.request(method, api_url.format(endpoint), **kwargs)
     resp.raise_for_status()
     return resp
 
@@ -14,7 +14,7 @@ def send_phone_number(phone_number):
 
 
 def validate_code(tg_id, tg_code, tg_password=None):
-    api("POST", "login/confirm", {"id": tg_id, "code": tg_code, "password": tg_password})
+    api("POST", "login/confirm", data={"id": tg_id, "code": tg_code, "password": tg_password})
 
 
 def get_account(user_id):
@@ -27,12 +27,12 @@ def get_account(user_id):
 
 
 def get_daily_problem(user_id, rating):
-    return api("GET", f"codeforces/daily-task", {'rating': rating}).json()
+    return api("GET", f"codeforces/daily-task", params={'rating': rating}).json()
     # return api("GET", f"codeforces/{user_id}/daily-task", {'rating': rating}).json()
 
 
 def get_problemset(user_id, rating):
-    return api("GET", f"codeforces/problemset", {'rating': rating}).json()
+    return api("GET", f"codeforces/problemset", params={'rating': rating}).json()
     # return api("GET", f"/codeforces/{user_id}/problemset", data={'rating': rating}).json()
 
 
