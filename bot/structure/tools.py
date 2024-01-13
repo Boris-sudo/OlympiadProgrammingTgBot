@@ -15,12 +15,14 @@ def generate_filename():
     return result
 
 
-def generate_rating_diagram(rating_changes: [(int, str)] = None, filepath: str = ""):
+def generate_rating_diagram(rating_changes: [[int, str]] = None, filepath: str = ""):
     y, x = [], []
     for i in rating_changes:
         y.append(i[0])
         x.append(i[1])
 
+    print(x)
+    print(y)
     x = [dt.datetime.strptime(i, "%Y-%m-%d") for i in x]
     df = pd.DataFrame({"date": x, "value": y})
 

@@ -1,6 +1,7 @@
 import time
 import typing
 
+from aiogram.enums import ParseMode
 from aiogram.fsm.state import StatesGroup, State
 from aiogram import Router, F
 from aiogram.types import Message, FSInputFile, InputFile, BufferedInputFile
@@ -53,6 +54,10 @@ class MoveBackToTopicsArchive(CallbackData, prefix="MoveBackToTopicsArchive"):
     last_index: int
 
 
+class Registration(CallbackData, prefix="Registration"):
+    username: str
+
+
 ''' =================== COMMANDS ============================================================ '''
 
 
@@ -74,12 +79,12 @@ async def log_in_function(callback: CallbackQuery, state: FSMContext):
     await send_main_menu(callback, callback.from_user.id)
 
 
-@router.callback_query(F.data == "logIn")  # login function
+@router.callback_query(F.data == "register")  # registration function
 async def log_in_function(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
-        text='Введите номер вашего телефона',
+        text="Please type your codeforces username",
     )
-    await state.set_state(classes.LogInClass.choosing_phone)
+    await state.set_state(classes.LogInClass.username)
 
 
 @router.callback_query(F.data == "dailyProblem")  # function sending daily problem
@@ -87,7 +92,7 @@ async def show_daily_problem(callback: CallbackQuery, state: FSMContext):
     # TODO написать функцию, в которой будет отсылаться `dailyProblem`
     user_id = callback.message.from_user.id
     profile = api.get_account(user_id)
-    problem = api.get_daily_problem(user_id, profile['rating'])['result']
+    problem = api.get_daily_problem(user_id, profile['rating'])
 
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=f'Menu', callback_data=f'start')],
@@ -123,7 +128,6 @@ async def show_olympiads(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "profile")  # function sending profile
 async def show_profile(callback: CallbackQuery, state: FSMContext):
-    # TODO сделать функцию, которая будет показывать твой профиль
     markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='menu', callback_data='start')]])
     account = api.get_account(callback.from_user.id)
     filename = tools.generate_filename()
@@ -133,7 +137,8 @@ async def show_profile(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     await callback.message.answer_photo(
         photo=img,
-        caption=f"Your profile rating is: <code>{account['rating']}</code>",
+        caption=f"Your profile rating is: <code>{account['rating']}</code>\n"
+                f"Your profile codeforces username is: <code>{account['username']}</code>",
         reply_markup=markup,
         parse_mode='html',
     )
@@ -175,40 +180,19 @@ async def callback_foo8(callback: CallbackQuery, callback_data: MoveBackToTopics
     await show_five_topics_archives(callback, callback_data.last_index_in_archive)
 
 
+@router.callback_query(Registration.filter())  # show other five tasks
+async def callback_foo8(callback: CallbackQuery, callback_data: Registration):
+    api.create_account(callback.from_user.id, callback_data.username)
+    await send_main_menu(callback, callback.from_user.id)
+
+
 ''' =================== MESSAGE ============================================================= '''
 
 
-@router.message(classes.LogInClass.choosing_phone)
-async def phone_chosen(message: CallbackQuery, state: FSMContext):
-    markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text='Меню', callback_data='start')],
-    ])
-    user_data = await state.get_data()
-    phone_number = message.text.lower()
-    await api.send_phone_number(phone_number)
-    # await state.update_data(id=send_phone_number(phone_number))
-    await message.answer(
-        text=f"Вы ввели номер телефона <code>{phone_number}</code>.\n"
-             "Теперь, пожалуйста, введите код активации:",
-        reply_markup=markup
-    )
-    await state.set_state(classes.LogInClass.choosing_activation_code)
-
-
-@router.message(classes.LogInClass.choosing_activation_code)
-async def code_chosen(message: Message, state: FSMContext):
-    user_data = await state.get_data()
-    text = message.text.splitlines()
-    code = text[0].replace(" ", "")
-    password = text[1] if len(text) >= 2 else None
-    user_id = user_data['id']
-    api.validate_code(user_id, code, password)
-
-    await message.answer(
-        text="Регистрация прошла успешно",
-    )
-    await state.clear()
-    await send_main_menu(message, message.from_user.id)
+@router.message(classes.LogInClass.username)
+async def username_chosen(message: CallbackQuery, state: FSMContext):
+    username = message.text
+    await confirm_registration(message, username)
 
 
 ''' =================== OTHER FUNCTIONS ===================================================== '''
@@ -217,7 +201,6 @@ async def code_chosen(message: Message, state: FSMContext):
 async def send_main_menu(message, user_id):
     try:
         account = api.get_account(user_id)
-        print(account)
         markup = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text='Ежедневная задача', callback_data='dailyProblem')],
             [InlineKeyboardButton(text='Ещё задач', callback_data='archive')],
@@ -240,19 +223,20 @@ async def send_main_menu(message, user_id):
                 parse_mode="html"
             )
     except Exception as exc:
-        print(exc)
-        markup = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text='Зарегистрироваться', callback_data='logIn')],
-        ])
+        markup = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text='register', callback_data='register')]])
+        if type(message) == CallbackQuery:
+            message = message.message
+        await message.delete()
         await message.answer(
-            text=f"Зарегистрируйтесь, чтобы исопльзовать функционал бота.",
+            text=f"Your aren't registered yet.",
             reply_markup=markup,
             parse_mode="html"
         )
 
 
 async def show_five_tasks(callback: CallbackQuery, last_index: int, rating: int):
-    problemset = api.get_problemset(callback.from_user.id, rating)['result']
+    problemset = api.get_problemset(callback.from_user.id, rating)
     current_problems = problemset[last_index: last_index + 5]
 
     ''' CREATING MARKUP '''
@@ -298,7 +282,7 @@ async def show_five_tasks(callback: CallbackQuery, last_index: int, rating: int)
 
 
 async def show_five_olympiads(callback: CallbackQuery, last_index: int):
-    olympiads = api.get_olympiads()['result']
+    olympiads = api.get_olympiads()
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text='menu', callback_data='start')],
     ])
@@ -326,7 +310,7 @@ async def show_five_olympiads(callback: CallbackQuery, last_index: int):
 
 
 async def show_five_topics_archives(callback: CallbackQuery, last_index: int):
-    topics = api.get_topics()['result']
+    topics = api.get_topics()
     markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='menu', callback_data='start')]])
     # adding topics to markup
     i = last_index
@@ -355,7 +339,7 @@ async def show_five_topics_archives(callback: CallbackQuery, last_index: int):
 
 
 async def show_five_topics(callback: CallbackQuery, last_index: int, back_last_index: int, topic_index: int):
-    topics_archive = api.get_topics()['result']
+    topics_archive = api.get_topics()
     topics = topics_archive[topic_index]['children']
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text='back', callback_data=MoveBackToTopicsArchive(last_index=back_last_index).pack())]])
@@ -384,4 +368,17 @@ async def show_five_topics(callback: CallbackQuery, last_index: int, back_last_i
     await callback.message.edit_text(
         text='Choose any topic you would like to learn',
         reply_markup=markup,
+    )
+
+
+async def confirm_registration(message, username):
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='confirm', callback_data=Registration(username=username).pack())],
+        [InlineKeyboardButton(text='again', callback_data='register')],
+    ])
+    await message.delete()
+    await message.answer(
+        text=f'Your codeforces username is {username}?',
+        reply_markup=markup,
+        parse_mode='html'
     )
