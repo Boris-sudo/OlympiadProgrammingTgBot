@@ -3,6 +3,7 @@ from datetime import date
 from django.http import JsonResponse
 
 from ..models import Profile, RatingChanges
+from ..classes import check_daily_task_checking_done
 
 
 def login(request):
@@ -25,6 +26,7 @@ def login(request):
 
 
 def create_account(request):
+    check_daily_task_checking_done()
     if request.method == 'POST':
         user_id = request.POST.get('user_id')
         username = request.POST.get('username')

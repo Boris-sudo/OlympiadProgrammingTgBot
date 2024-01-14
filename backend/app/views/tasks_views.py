@@ -91,6 +91,8 @@ def daily_task(request):
                                                    'index': task_index})
             account.daily_solver = daily_task_solvers
             account.save()
+            print(account.daily_solver)
+            print(daily_task_solvers)
 
         return JsonResponse({'result': result_task}, status=200)
     return JsonResponse({'result': 'failed'}, status=400)

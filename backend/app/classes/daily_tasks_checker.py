@@ -3,12 +3,13 @@ from rq_scheduler import Scheduler
 import time
 import datetime
 
-from backend.app.classes.codeforces_request import CodeforcesRequest
-from backend.app.classes.rating_change import change_rating_by_daily_task
-from backend.app.models import *
+from .codeforces_request import CodeforcesRequest
+from .rating_change import change_rating_by_daily_task
+from ..models import *
 
 
 def daily_tasks_checker():
+    print('Starting daily tasks checker')
     daily_solvers = DailyTaskSolvers.objects.all()
     codeforces_request = CodeforcesRequest()
     yesterday = datetime.date.today() - datetime.timedelta(days=1)
