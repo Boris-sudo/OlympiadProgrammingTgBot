@@ -13,7 +13,9 @@ def login(request):
             if profile is None:
                 return JsonResponse({'result': 'failed'}, status=400)
             rating_changes = []
-            for i in profile.rating_changes.all():
+            rating_changes_obj = RatingChanges.objects.filter(profile=profile).all()
+            print(rating_changes_obj)
+            for i in rating_changes_obj:
                 rating_changes.append((i.rating, i.date))
             result = {'rating': profile.rating, 'rating_changes': rating_changes, 'username': profile.codeforces_name}
             return JsonResponse({'result': result}, status=200)
@@ -28,10 +30,8 @@ def create_account(request):
         username = request.POST.get('username')
 
         now_date = date.today()
-        rating_change = RatingChanges.objects.create(date=now_date, rating=800)
-
         profile = Profile.objects.create(user_id=user_id, codeforces_name=username)
-        profile.rating_changes.add(rating_change)
+        rating_change = RatingChanges.objects.create(date=now_date, rating=800, profile=profile)
 
         return JsonResponse({'result': 'ok'}, status=200)
     return JsonResponse({'result': 'failed'}, status=400)

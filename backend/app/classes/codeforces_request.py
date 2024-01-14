@@ -12,3 +12,7 @@ class CodeforcesRequest:
     def get_problemset(self):
         problemset = self.api('problemset.problems')
         return problemset
+
+    def get_solved_tasks(self, username, from_num: int = 1, count_num: int = 100):
+        result = self.api(f'user.status?handle={username}&from={from_num}&count={count_num}')['result']
+        return result

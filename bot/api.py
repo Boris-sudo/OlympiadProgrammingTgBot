@@ -19,8 +19,8 @@ def get_account(user_id):
     return result['result']
 
 
-def get_daily_problem(user_id, rating):
-    result = api("GET", f"codeforces/daily-task", params={'rating': rating, 'user_id': user_id}).json()
+def get_daily_problem(user_id):
+    result = api("GET", f"codeforces/daily-task", params={'user_id': user_id}).json()
     return result['result']
 
 

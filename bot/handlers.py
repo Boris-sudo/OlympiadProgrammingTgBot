@@ -19,6 +19,7 @@ import bot.structure.tools as tools
 
 router = Router()
 
+
 ''' =================== SOME EXTRA CLASSES ================================================== '''
 
 
@@ -90,9 +91,9 @@ async def log_in_function(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == "dailyProblem")  # function sending daily problem
 async def show_daily_problem(callback: CallbackQuery, state: FSMContext):
     # TODO написать функцию, в которой будет отсылаться `dailyProblem`
-    user_id = callback.message.from_user.id
-    profile = api.get_account(user_id)
-    problem = api.get_daily_problem(user_id, profile['rating'])
+    user_id = callback.from_user.id
+    print(user_id)
+    problem = api.get_daily_problem(user_id)
 
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=f'Menu', callback_data=f'start')],
@@ -102,7 +103,7 @@ async def show_daily_problem(callback: CallbackQuery, state: FSMContext):
         )]
     ])
     await callback.message.edit_text(
-        text=f'Here is your daily problem\nrating: <code>{problem["rating"]}</code>',
+        text=f'Here is your daily problem\nrating: <code>{problem["rating"]}</code>.',
         reply_markup=markup,
         parse_mode='html',
     )
@@ -110,7 +111,7 @@ async def show_daily_problem(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "archive")  # function sending all tasks for your rating
 async def show_archive_tasks(callback: CallbackQuery, state: FSMContext):
-    user_id = callback.message.from_user.id
+    user_id = callback.from_user.id
     profile = api.get_account(user_id)
 
     await show_five_tasks(callback, 0, profile['rating'])

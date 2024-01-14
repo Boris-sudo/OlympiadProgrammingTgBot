@@ -4,17 +4,24 @@ from datetime import date
 from django.http import JsonResponse
 
 from ..classes import CodeforcesRequest
-from ..models import DailyTask
+from ..models import DailyTask, Profile, DailyTaskSolvers
 
 
-def find_task_in_problemset(problemset, task):
-    for problem in problemset:
+def find_task_in_problemset(problems, task):
+    for problem in problems:
+        same = True
         for i in task:
-            same = True
+            try:
+                pi = problem[i]
+                ti = task[i]
+            except:
+                same = False
+                break
             if problem[i] != task[i]:
                 same = False
-            if same:
-                return problem
+                break
+        if same:
+            return problem
 
 
 def problemset(request):
@@ -34,16 +41,18 @@ def problemset(request):
 
 
 def daily_task(request):
+    today = date.today()
     if request.method == 'GET':
-        rating = int(request.GET.get('rating'))
+        user_id = int(request.GET.get('user_id'))
+        account = Profile.objects.filter(user_id=user_id).first()
+        rating = account.rating
         codeforces_request = CodeforcesRequest()
         response = codeforces_request.get_problemset()
 
-        now_date = date.today()
         ''' GETTING DAILY TASK '''
-        result_task = DailyTask.objects.filter(date=now_date, rating=rating).first()
+        result_task = DailyTask.objects.filter(date=today, rating=rating).first()
         if result_task is None:
-            print("result task doesn't exist yet")
+            print("daily task doesn't exist yet")
             # getting all available new daily tasks
             available_problems = []
             for problem in response['result']['problems']:
@@ -60,17 +69,28 @@ def daily_task(request):
                 if same_task_in_db is None:
                     break
             # creating db-element with this daily task
-            DailyTask.objects.create(
-                date=now_date,
+            task = DailyTask.objects.create(
+                date=today,
                 rating=result_task['rating'],
                 contestId=result_task['contestId'],
                 index=result_task['index']
             )
+            daily_task_solvers = DailyTaskSolvers.objects.create(
+                task=task,
+            )
+            account.daily_solver = daily_task_solvers
+            account.save()
         else:
+            print(result_task)
+            daily_task_solvers = DailyTaskSolvers.objects.filter(task=result_task).first()
             task_rating = result_task.rating
             task_contestId = result_task.contestId
             task_index = result_task.index
             result_task = find_task_in_problemset(response['result']['problems'],
                                                   {'rating': task_rating, 'contestId': task_contestId,
                                                    'index': task_index})
+            account.daily_solver = daily_task_solvers
+            account.save()
+
         return JsonResponse({'result': result_task}, status=200)
+    return JsonResponse({'result': 'failed'}, status=400)
