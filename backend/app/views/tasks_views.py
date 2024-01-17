@@ -46,6 +46,8 @@ def daily_task(request):
         user_id = int(request.GET.get('user_id'))
         account = Profile.objects.filter(user_id=user_id).first()
         rating = account.rating
+        if rating < 800:
+            rating = 800
         codeforces_request = CodeforcesRequest()
         response = codeforces_request.get_problemset()
 
@@ -55,15 +57,16 @@ def daily_task(request):
             print("daily task doesn't exist yet")
             # getting all available new daily tasks
             available_problems = []
-            for problem in response['result']['problems']:
+            for problem in response['problems']:
+                # print(problem)
                 try:
-                    if abs(problem['rating'] - rating) <= 0:
+                    if abs(problem['rating'] - rating) <= 100:
                         available_problems.append(problem)
                 except:
                     pass
             # checker that this task wasn't already a daily task
             while True:
-                result_task = available_problems[random.randint(0, len(available_problems))]
+                result_task = random.choice(available_problems)
                 same_task_in_db = DailyTask.objects.filter(rating=result_task['rating'], contestId=result_task['contestId'],
                                                        index=result_task['index']).first()
                 if same_task_in_db is None:

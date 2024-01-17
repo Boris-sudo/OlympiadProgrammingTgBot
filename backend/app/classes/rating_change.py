@@ -8,5 +8,8 @@ let's change rating  base on:
 
 def change_rating_by_daily_task(current_rating: int, task_rating: int, done: bool = True, tries_count: int = 1):
     sign = 1 if done else -1
-    new_rating = current_rating + sign * ((task_rating - current_rating + 200) / 100) * 25 / tries_count
+    if tries_count == 0:
+        new_rating = current_rating + sign * ((task_rating - current_rating + 200) / 100) * 25
+    else:
+        new_rating = current_rating + sign * ((task_rating - current_rating + 200) / 100) * 25 / tries_count
     return new_rating

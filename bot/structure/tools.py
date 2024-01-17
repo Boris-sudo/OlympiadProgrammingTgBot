@@ -25,8 +25,10 @@ def generate_rating_diagram(rating_changes: [[int, str]] = None, filepath: str =
     print(y)
     x = [dt.datetime.strptime(i, "%Y-%m-%d") for i in x]
     df = pd.DataFrame({"date": x, "value": y})
+    print(df)
 
     result = sns.lineplot(x='date', y='value', data=df, markers=True, dashes=False)
     plt.xticks(rotation=90)
     plt.tight_layout()
     plt.savefig(filepath)
+    plt.close()

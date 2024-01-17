@@ -7,6 +7,7 @@ from ..classes import check_daily_task_checking_done
 
 
 def login(request):
+    check_daily_task_checking_done()
     if request.method == 'GET':
         user_id = request.GET.get('user_id')
         try:
@@ -15,7 +16,6 @@ def login(request):
                 return JsonResponse({'result': 'failed'}, status=400)
             rating_changes = []
             rating_changes_obj = RatingChanges.objects.filter(profile=profile).all()
-            print(rating_changes_obj)
             for i in rating_changes_obj:
                 rating_changes.append((i.rating, i.date))
             result = {'rating': profile.rating, 'rating_changes': rating_changes, 'username': profile.codeforces_name}
@@ -26,7 +26,6 @@ def login(request):
 
 
 def create_account(request):
-    check_daily_task_checking_done()
     if request.method == 'POST':
         user_id = request.POST.get('user_id')
         username = request.POST.get('username')
