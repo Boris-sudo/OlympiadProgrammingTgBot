@@ -84,12 +84,11 @@ def daily_task(request):
             account.daily_solver = daily_task_solvers
             account.save()
         else:
-            print(result_task)
             daily_task_solvers = DailyTaskSolvers.objects.filter(task=result_task).first()
             task_rating = result_task.rating
             task_contestId = result_task.contestId
             task_index = result_task.index
-            result_task = find_task_in_problemset(response['result']['problems'],
+            result_task = find_task_in_problemset(response['problems'],
                                                   {'rating': task_rating, 'contestId': task_contestId,
                                                    'index': task_index})
             account.daily_solver = daily_task_solvers

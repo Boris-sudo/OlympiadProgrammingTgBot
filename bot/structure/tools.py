@@ -21,14 +21,11 @@ def generate_rating_diagram(rating_changes: [[int, str]] = None, filepath: str =
         y.append(i[0])
         x.append(i[1])
 
+    x = [dt.datetime.strptime(i, "%Y-%m-%d") for i in x]
     print(x)
     print(y)
-    x = [dt.datetime.strptime(i, "%Y-%m-%d") for i in x]
-    df = pd.DataFrame({"date": x, "value": y})
-    print(df)
 
-    result = sns.lineplot(x='date', y='value', data=df, markers=True, dashes=False)
+    plt.plot(x, y, color='blue', linewidth=2, markersize=8, marker='o', animated=True)
     plt.xticks(rotation=90)
-    plt.tight_layout()
     plt.savefig(filepath)
     plt.close()
