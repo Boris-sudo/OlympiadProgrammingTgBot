@@ -19,7 +19,6 @@ import bot.structure.tools as tools
 
 router = Router()
 
-
 ''' =================== SOME EXTRA CLASSES ================================================== '''
 
 
@@ -142,6 +141,24 @@ async def show_profile(callback: CallbackQuery, state: FSMContext):
                 f"Your profile codeforces username is: <code>{account['username']}</code>",
         reply_markup=markup,
         parse_mode='html',
+    )
+
+
+@router.callback_query(F.data == "pvp-mod")
+async def show_pvp_mod(callback: CallbackQuery):  # function that finds you an opponent for battling
+    account = api.get_account(callback.message.from_user.id)
+    opponent = api.get_opponent(callback.message.from_user.id)
+
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [],
+    ])
+
+    await callback.message.edit_text(
+        text=f'You will battle against {opponent["username"]}\n'
+             f'Your rating: {account["rating"]}\n'
+             f'Your opponent rating: {opponent["rating"]}\n',
+        reply_markup=markup,
+        parse_mode="HTML",
     )
 
 
