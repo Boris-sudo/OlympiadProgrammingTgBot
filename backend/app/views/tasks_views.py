@@ -30,7 +30,7 @@ def problemset(request):
         codeforces_request = CodeforcesRequest()
         response = codeforces_request.get_problemset()
         result_response = []
-        problems = response['result']['problems']
+        problems = response['problems']
         for problem in problems:
             try:
                 if abs(problem['rating'] - rating) <= 200:
@@ -54,11 +54,9 @@ def daily_task(request):
         ''' GETTING DAILY TASK '''
         result_task = DailyTask.objects.filter(date=today, rating=rating).first()
         if result_task is None:
-            print("daily task doesn't exist yet")
             # getting all available new daily tasks
             available_problems = []
             for problem in response['problems']:
-                # print(problem)
                 try:
                     if abs(problem['rating'] - rating) <= 100:
                         available_problems.append(problem)
@@ -93,8 +91,6 @@ def daily_task(request):
                                                    'index': task_index})
             account.daily_solver = daily_task_solvers
             account.save()
-            print(account.daily_solver)
-            print(daily_task_solvers)
 
         return JsonResponse({'result': result_task}, status=200)
     return JsonResponse({'result': 'failed'}, status=400)

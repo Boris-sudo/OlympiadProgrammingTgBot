@@ -1,12 +1,9 @@
 import datetime
 import random
-import time
-
-import seaborn as sns
+import os
+from pathlib import Path
 import matplotlib.pyplot as plt
-import pandas as pd
 import datetime as dt
-from PIL import Image
 
 
 def generate_filename():
@@ -15,15 +12,27 @@ def generate_filename():
     return result
 
 
+def delete_files_in_folder(folder_path):
+    for filename in os.listdir(folder_path):
+        file_path = os.path.join(folder_path, filename)
+        try:
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+        except Exception as e:
+            print(f'Ошибка при удалении файла {file_path}. {e}')
+
+
 def generate_rating_diagram(rating_changes: [[int, str]] = None, filepath: str = ""):
+    folder = Path('/home/boriskiva/PycharmProjects/OlympiadProgrammingTgBot/bot/static/generated')
+    if len(list(folder.iterdir())) >= 5:
+        delete_files_in_folder('/home/boriskiva/PycharmProjects/OlympiadProgrammingTgBot/bot/static/generated')
+
     y, x = [], []
     for i in rating_changes:
         y.append(i[0])
         x.append(i[1])
 
     x = [dt.datetime.strptime(i, "%Y-%m-%d") for i in x]
-    print(x)
-    print(y)
 
     plt.plot(x, y, color='blue', linewidth=2, markersize=8, marker='o', animated=True)
     plt.xticks(rotation=90)

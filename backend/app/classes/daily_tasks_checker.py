@@ -8,17 +8,15 @@ from .rating_change import change_rating_by_daily_task
 from ..models import *
 
 
-DAYS_AFTER_CHECK = 0
+DAYS_AFTER_CHECK = 1
 
 
 def daily_tasks_checker():
-    print('Starting daily tasks checker!!!')
     daily_solvers = DailyTaskSolvers.objects.all()
     codeforces_request = CodeforcesRequest()
     yesterday = str(datetime.date.today() - datetime.timedelta(days=DAYS_AFTER_CHECK))
 
     for daily_task_solver in daily_solvers:
-        print('Task: ', daily_task_solver.task.date, " ", daily_task_solver.task.rating)
         if daily_task_solver.task.date <= yesterday:
             profiles = Profile.objects.filter(daily_solver=daily_task_solver)
             task_contestId = daily_task_solver.task.contestId

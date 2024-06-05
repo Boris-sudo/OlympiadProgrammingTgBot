@@ -1,5 +1,8 @@
+import asyncio
 import time
 import typing
+import socket
+import json
 
 from aiogram.enums import ParseMode
 from aiogram.fsm.state import StatesGroup, State
@@ -89,9 +92,7 @@ async def log_in_function(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "dailyProblem")  # function sending daily problem
 async def show_daily_problem(callback: CallbackQuery, state: FSMContext):
-    # TODO написать функцию, в которой будет отсылаться `dailyProblem`
     user_id = callback.from_user.id
-    print(user_id)
     problem = api.get_daily_problem(user_id)
 
     markup = InlineKeyboardMarkup(inline_keyboard=[
@@ -106,6 +107,30 @@ async def show_daily_problem(callback: CallbackQuery, state: FSMContext):
         reply_markup=markup,
         parse_mode='html',
     )
+
+
+@router.callback_query(F.data == "fight")  # function making fight with another user
+async def show_daily_problem(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+    await create_new_fight(callback, user_id)
+
+
+@router.callback_query(F.data == "stop_fight")  # function stopping fight with another user
+async def show_daily_problem(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+    api.delete_fight(user_id)
+
+
+@router.callback_query(F.data == "give_up")  # function stopping fight with another user (you give up and lose)
+async def show_daily_problem(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+    api.give_up_fight(user_id)
+
+
+@router.callback_query(F.data == "check_solution")  # function check solution of fight
+async def show_daily_problem(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+    api.check_solution(user_id)
 
 
 @router.callback_query(F.data == "archive")  # function sending all tasks for your rating
@@ -141,24 +166,6 @@ async def show_profile(callback: CallbackQuery, state: FSMContext):
                 f"Your profile codeforces username is: <code>{account['username']}</code>",
         reply_markup=markup,
         parse_mode='html',
-    )
-
-
-@router.callback_query(F.data == "pvp-mod")
-async def show_pvp_mod(callback: CallbackQuery):  # function that finds you an opponent for battling
-    account = api.get_account(callback.message.from_user.id)
-    opponent = api.get_opponent(callback.message.from_user.id)
-
-    markup = InlineKeyboardMarkup(inline_keyboard=[
-        [],
-    ])
-
-    await callback.message.edit_text(
-        text=f'You will battle against {opponent["username"]}\n'
-             f'Your rating: {account["rating"]}\n'
-             f'Your opponent rating: {opponent["rating"]}\n',
-        reply_markup=markup,
-        parse_mode="HTML",
     )
 
 
@@ -219,33 +226,43 @@ async def username_chosen(message: CallbackQuery, state: FSMContext):
 async def send_main_menu(message, user_id):
     try:
         account = api.get_account(user_id)
-        markup = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text='Ежедневная задача', callback_data='dailyProblem')],
-            [InlineKeyboardButton(text='Ещё задач', callback_data='archive')],
-            [InlineKeyboardButton(text='Темы', callback_data='topics')],
-            [InlineKeyboardButton(text='Олимпиады', callback_data='olympiads')],
-            [InlineKeyboardButton(text='Профиль', callback_data='profile')],
-        ])
-        if type(message) == CallbackQuery:
-            await message.message.delete()
-            await message.message.answer(
-                text=f"Привет, {message.from_user.first_name}. Что хочешь посмотреть сегодня?",
-                reply_markup=markup,
-                parse_mode="html"
-            )
+        user_in_fight = api.check_user_in_figth(user_id)
+        for i in user_in_fight:
+            user_in_fight = json.loads(i)
+        if user_in_fight['exist'] == '1':
+            await show_fight_task(message, user_id)
         else:
-            await message.delete()
-            await message.answer(
-                text=f"Привет, {message.from_user.first_name}. Что хочешь посмотреть сегодня?",
-                reply_markup=markup,
-                parse_mode="html"
-            )
+            markup = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text='Ежедневная задача', callback_data='dailyProblem')],
+                [InlineKeyboardButton(text='Спаринговаться', callback_data='fight')],
+                [InlineKeyboardButton(text='Ещё задач', callback_data='archive')],
+                [InlineKeyboardButton(text='Темы', callback_data='topics')],
+                [InlineKeyboardButton(text='Олимпиады', callback_data='olympiads')],
+                [InlineKeyboardButton(text='Профиль', callback_data='profile')],
+            ])
+            if type(message) == CallbackQuery:
+                await message.message.delete()
+                await message.message.answer(
+                    text=f"Привет, {message.from_user.first_name}. Что хочешь посмотреть сегодня?",
+                    reply_markup=markup,
+                    parse_mode="html"
+                )
+            else:
+                await message.delete()
+                await message.answer(
+                    text=f"Привет, {message.from_user.first_name}. Что хочешь посмотреть сегодня?",
+                    reply_markup=markup,
+                    parse_mode="html"
+                )
     except Exception as exc:
         markup = InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text='register', callback_data='register')]])
         if type(message) == CallbackQuery:
             message = message.message
-        await message.delete()
+        try:
+            await message.delete()
+        except:
+            pass
         await message.answer(
             text=f"Your aren't registered yet.",
             reply_markup=markup,
@@ -389,7 +406,7 @@ async def show_five_topics(callback: CallbackQuery, last_index: int, back_last_i
     )
 
 
-async def confirm_registration(message, username):
+async def confirm_registration(message, username: str):
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text='confirm', callback_data=Registration(username=username).pack())],
         [InlineKeyboardButton(text='again', callback_data='register')],
@@ -400,3 +417,142 @@ async def confirm_registration(message, username):
         reply_markup=markup,
         parse_mode='html'
     )
+
+
+async def create_new_fight(callback: CallbackQuery, user_id: int):
+    user = api.get_account(user_id)
+    address = ('127.0.0.1', user['port'])
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(address)
+    server.listen(8)
+    server.setblocking(False)
+
+    api.create_new_fight(user_id)  # here bot sending request for django to  find opponent
+
+    loop = asyncio.get_event_loop()
+
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='stop searching', callback_data='stop_fight')],
+    ])
+    await callback.message.edit_text(
+        text='Searching for opponent..',
+        reply_markup=markup,
+        parse_mode='html',
+    )
+    client, _ = await loop.sock_accept(server)
+    loop.create_task(await_fight_response(callback, user_id, client))
+
+
+async def await_fight_response(callback, user_id, client):
+    loop = asyncio.get_event_loop()
+    request = None
+    while request != 'quit':
+        request = (await loop.sock_recv(client, 255))[17:-2]
+        if request is not None:
+            break
+    client.close()
+
+    if request == b'done':
+        await show_fight_task(callback, user_id)
+        return
+    elif request == b'aborted':
+        await send_main_menu(callback, user_id)
+        return
+
+
+async def show_fight_task(callback: CallbackQuery, user_id: int):
+    user = api.get_account(user_id)
+    address = ('127.0.0.1', user['port'])
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(address)
+    server.listen(8)
+    server.setblocking(False)
+
+    task = api.get_task((user_id))
+    for i in task:
+        task = json.loads(i)
+        break
+
+    await show_fight_task_2(callback, user_id, task, server)
+
+
+async def show_fight_task_2(callback, user_id, task, server):
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(
+            text=f'{task["task"]["name"]}',
+            url=f'https://codeforces.com/problemset/problem/{task["task"]["contestId"]}/{task["task"]["index"]}',
+        )],
+        [InlineKeyboardButton(text='check', callback_data='check_solution')],
+        [InlineKeyboardButton(text='give up', callback_data='give_up')],
+    ])
+
+    await SEND_MESSAGE(callback, 'Opponent found', markup)
+
+    loop = asyncio.get_event_loop()
+    client, _ = await loop.sock_accept(server)
+    loop.create_task(await_during_fight(callback, user_id, client, server, task))
+
+
+async def await_during_fight(callback, user_id, client, server, task):
+    loop = asyncio.get_event_loop()
+    request = None
+    while request != 'quit':
+        request = (await loop.sock_recv(client, 255))[17:-2]
+        if request is not None:
+            break
+
+    if request == b'wrong':
+        await wrong_solution(callback, user_id, server, task)
+    elif request == b'correct':
+        await correct_solution(callback, user_id, server)
+    elif request == b'finished':
+        await finish_game(callback, user_id, server)
+
+
+async def correct_solution(callback, user_id, server):
+    await SEND_MESSAGE(callback, 'Amazing, you submitted your solution first! You won!', None)
+    server.close()
+    await asyncio.sleep(5)
+    await send_main_menu(callback, user_id)
+
+
+async def finish_game(callback, user_id, server):
+    await SEND_MESSAGE(callback,'Sorry, but your opponent submitted his solution first.', None)
+    server.close()
+    await asyncio.sleep(5)
+    await send_main_menu(callback, user_id)
+
+
+async def wrong_solution(callback, user_id, server, task):
+    await SEND_MESSAGE(callback, 'You haven`t solved this problem.\nIf I am wrong, please try to send your submission again.', None)
+    await asyncio.sleep(1)
+    await show_fight_task_2(callback, user_id, server, task)
+
+
+async def SEND_MESSAGE(callback, text, markup):
+    try:
+        await callback.message.edit_text(
+            text=text,
+            reply_markup=markup,
+            parse_mode='html',
+        )
+    except:
+        try:
+            await callback.edit_text(
+                text=text,
+                reply_markup=markup,
+                parse_mode='html',
+            )
+        except:
+            try:
+                await callback.message.answer(
+                    text=text,
+                    reply_markup=markup,
+                    parse_mode='html',
+                )
+            except:
+                await callback.answer(
+                    text=text,
+                    reply_markup=markup,
+                    parse_mode='html',
+                )

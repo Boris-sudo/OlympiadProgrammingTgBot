@@ -14,8 +14,5 @@ def get_olyampiads(request):
         result = []
         for olympiad in olympiads:
             result.append({'name': olympiad.name, 'link': olympiad.link})
-        print(result)
-        print()
-        print()
         return JsonResponse({'result': result}, status=200)
     return JsonResponse({'result': 'failed'}, status=400)

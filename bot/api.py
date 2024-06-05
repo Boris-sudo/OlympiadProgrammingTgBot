@@ -41,3 +41,33 @@ def get_olympiads():
 def get_topics():
     result = api("GET", f'topics').json()
     return result['result']
+
+
+def create_new_fight(user_id):
+    result = api('POST', f"fight", data={'user_id': user_id})
+    return result
+
+
+def delete_fight(user_id):
+    result = api('DELETE', f"fight", data={'user_id': user_id})
+    return result
+
+
+def give_up_fight(user_id):
+    result = api('POST', f"fight/give-up", data={'user_id': user_id})
+    return result
+
+
+def check_solution(user_id):
+    result = api('POST', f"fight/check", data={'user_id': user_id})
+    return result
+
+
+def get_task(user_id):
+    result = api('POST', f"fight/task", data={'user_id': user_id})
+    return result
+
+
+def check_user_in_figth(user_id):
+    result = api('POST', f"fight/exist", data={'user_id': user_id})
+    return result
